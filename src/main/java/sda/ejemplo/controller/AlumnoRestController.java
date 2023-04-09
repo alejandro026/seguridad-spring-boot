@@ -54,16 +54,19 @@ public class AlumnoRestController {
 			List<String> errores= resultado.getFieldErrors().stream()
 					.map(e->"El campo "+e.getField() +" "+ e.getDefaultMessage()).collect(Collectors.toList());
 			mapa.put("errors", errores);
-//			return new ResponseEntity<Map<String, Object>>(mapa, HttpStatus.BAD_REQUEST);
 			return ResponseEntity.badRequest().body(mapa);
-
 		}
 		
 		try {
 			alumnoNuevo= alumnoService.save(alumno);
 		} catch (DataAccessException e2) {
 			mapa.put("mensaje", "Fallo al guardar el alumno");
-			mapa.put("error", e2.getMostSpecificCause()+" : "+ e2.getMessage());
+			if(e2.getRootCause().toString().contains("Duplicate entry")) {
+				mapa.put("error", "El correo electrónico proporcionado ya está registrado. Por favor, verifica.");
+
+			}else {
+				mapa.put("error", e2.getMostSpecificCause()+" : "+ e2.getMessage());
+			}
 			return ResponseEntity.internalServerError().body(mapa);
 			
 		}
@@ -76,16 +79,41 @@ public class AlumnoRestController {
 	}
 	
 	@PutMapping("/alumnos/{id}")
-	public Alumno actualizar(@RequestBody Alumno alumno, @PathVariable Integer id) {
+	public ResponseEntity<?> actualizar(@Valid @RequestBody Alumno alumno, BindingResult resultado, @PathVariable Integer id) {
+		Map<String, Object> mapa= new HashMap<String, Object>();
 		Alumno alumnoActual= alumnoService.findById(id);
 		alumnoActual.setNombre(alumno.getNombre());
 		alumnoActual.setNumeroControl(alumno.getNumeroControl());
 		alumnoActual.setEmail(alumno.getEmail());
 		
-		return alumnoService.save(alumnoActual);
+		if(resultado.hasErrors()) {
+			List<String> errores= resultado.getFieldErrors().stream()
+					.map(e->"El campo "+e.getField() +" "+ e.getDefaultMessage()).collect(Collectors.toList());
+			mapa.put("errors", errores);
+			return ResponseEntity.badRequest().body(mapa);
+		}
+		
+		try {
+			alumno= alumnoService.save(alumnoActual);
+		} catch (DataAccessException e2) {
+			
+			mapa.put("mensaje", "Fallo al actualizar el alumno");
+			mapa.put("error", e2.getMostSpecificCause()+" : "+ e2.getMessage());
+
+			return ResponseEntity.internalServerError().body(mapa);
+			
+		}
+		
+		mapa.put("mensaje", "El alumno se actualizo con exito");
+		mapa.put("alumno", alumnoActual);
+		
+		return ResponseEntity.ok(mapa);
+
+		
+//		return alumnoService.save(alumnoActual);
 	}
 	
-	@DeleteMapping("alumno/{id}")
+	@DeleteMapping("/alumnos/{id}")
 	public void eliminar(@PathVariable Integer id) {
 		alumnoService.delete(id);
 	}
