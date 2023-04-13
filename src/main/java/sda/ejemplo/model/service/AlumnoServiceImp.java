@@ -10,7 +10,7 @@ import sda.ejemplo.model.dao.IAlumnoDao;
 import sda.ejemplo.model.entity.Alumno;
 
 @Service
-public class IAlumnoServiceImp implements IAlumnoService{
+public class AlumnoServiceImp implements IAlumnoService{
 	
 	@Autowired
 	private IAlumnoDao alumnoDao;
@@ -23,22 +23,21 @@ public class IAlumnoServiceImp implements IAlumnoService{
 
 
 	@Override
+	@Transactional
 	public Alumno save(Alumno alumno) {
-		// TODO Auto-generated method stub
 		return alumnoDao.save(alumno);
 	}
 
 	@Override
 	@Transactional(readOnly= true)
 	public Alumno findById(Integer id) {
-		// TODO Auto-generated method stub
 		return alumnoDao.findById(id).orElse(null);
 	}
 
 
 	@Override
+	@Transactional
 	public void delete(Integer id) {
-		// TODO Auto-generated method stub
 		alumnoDao.deleteById(id);
 	}
 

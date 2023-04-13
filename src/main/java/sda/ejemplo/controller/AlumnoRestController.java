@@ -10,6 +10,7 @@ import org.hibernate.exception.DataException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -27,8 +28,8 @@ import jakarta.validation.Valid;
 import sda.ejemplo.model.entity.Alumno;
 import sda.ejemplo.model.service.IAlumnoService;
 
+@CrossOrigin(origins = "http://localhost:4200/")
 @RestController
-@CrossOrigin
 @RequestMapping("/api")
 public class AlumnoRestController {
 
@@ -41,8 +42,24 @@ public class AlumnoRestController {
 	}
 	
 	@GetMapping("/alumnos/{id}")
-	public Alumno listar(@PathVariable Integer id) {
-		return alumnoService.findById(id);
+	public ResponseEntity<?> listar(@PathVariable Integer id) {
+		Map<String, Object> map = new HashMap<String, Object>();
+		Alumno alumno= null;
+		
+		try {
+			alumno= alumnoService.findById(id);
+		} catch (DataAccessException e) {
+			map.put("mensaje", "Se presento un problema al reañizar la consulta");
+			return new ResponseEntity<Map<String, Object>>(map, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		if (alumno==null) {
+			map.put("mensaje", "El alumno que se busca no existe");
+			return new ResponseEntity<Map<String, Object>>(map, HttpStatus.NOT_FOUND);
+		}
+		
+		return new ResponseEntity<Alumno>(alumno, HttpStatus.OK);
+		
 	}
 	
 	@PostMapping("/alumnos")
@@ -81,11 +98,10 @@ public class AlumnoRestController {
 	@PutMapping("/alumnos/{id}")
 	public ResponseEntity<?> actualizar(@Valid @RequestBody Alumno alumno, BindingResult resultado, @PathVariable Integer id) {
 		Map<String, Object> mapa= new HashMap<String, Object>();
-		Alumno alumnoActual= alumnoService.findById(id);
-		alumnoActual.setNombre(alumno.getNombre());
-		alumnoActual.setNumeroControl(alumno.getNumeroControl());
-		alumnoActual.setEmail(alumno.getEmail());
 		
+		Alumno alumnoActual= alumnoService.findById(id);
+		Alumno alumnoActualizado=null;
+				
 		if(resultado.hasErrors()) {
 			List<String> errores= resultado.getFieldErrors().stream()
 					.map(e->"El campo "+e.getField() +" "+ e.getDefaultMessage()).collect(Collectors.toList());
@@ -93,8 +109,18 @@ public class AlumnoRestController {
 			return ResponseEntity.badRequest().body(mapa);
 		}
 		
+		if(alumnoActual==null) {
+			mapa.put("mensaje", "Error el alumno no existe para actualizar");
+			return new ResponseEntity<Map<String, Object>>(mapa, HttpStatus.NOT_FOUND);
+		}
+		
+		
 		try {
-			alumno= alumnoService.save(alumnoActual);
+			alumnoActual.setNombre(alumno.getNombre());
+			alumnoActual.setNumeroControl(alumno.getNumeroControl());
+			alumnoActual.setEmail(alumno.getEmail());
+
+			alumnoActualizado= alumnoService.save(alumnoActual);
 		} catch (DataAccessException e2) {
 			
 			mapa.put("mensaje", "Fallo al actualizar el alumno");
@@ -109,12 +135,22 @@ public class AlumnoRestController {
 		
 		return ResponseEntity.ok(mapa);
 
-		
-//		return alumnoService.save(alumnoActual);
 	}
 	
 	@DeleteMapping("/alumnos/{id}")
-	public void eliminar(@PathVariable Integer id) {
-		alumnoService.delete(id);
+	public ResponseEntity<?> eliminar(@PathVariable Integer id) {
+		Map<String, Object> map= new HashMap<String, Object>();
+		
+		try {
+			alumnoService.delete(id);
+		} catch (DataAccessException e) {
+			map.put("mensaje", "Error al eliminar");
+			map.put("error", e.getMostSpecificCause()+ " : "+ e.getMessage());
+			return ResponseEntity.internalServerError().body(map);
+		}
+		
+		map.put("mensaje", "Se elimino con exito");
+		return ResponseEntity.ok(map);
+		
 	}
 }
