@@ -7,7 +7,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -21,7 +20,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("deprecation")
 @Component
 public class JwtProvider {
 	private final static Logger logger = LoggerFactory.getLogger(JwtProvider.class);
@@ -56,9 +54,8 @@ public class JwtProvider {
 			logger.error("token expirado");
 		} catch (IllegalArgumentException e) {
 			logger.error("token vacio");
-		} catch (SignatureException e) {
-			logger.error("fail en la firma");
-		}
+		} 
+
 		
 		return false;
 	}
